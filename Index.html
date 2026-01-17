@@ -1,0 +1,149 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+<title>Masjid Finder Lite</title>
+
+<!-- Leaflet -->
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+
+<!-- FontAwesome -->
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+<!-- Markdown -->
+<script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+
+<style>
+:root{
+--primary:#059669;
+--bg:#f0fdf4;
+--white:#fff;
+--text:#1f2937;
+--safe-top:env(safe-area-inset-top,0px);
+--safe-bottom:env(safe-area-inset-bottom,0px)
+}
+*{box-sizing:border-box}
+body{
+margin:0;font-family:system-ui;background:var(--bg);
+height:100vh;display:flex;flex-direction:column;overflow:hidden;color:var(--text)
+}
+header{
+background:var(--primary);color:#fff;
+padding:calc(10px + var(--safe-top)) 15px 10px;
+display:flex;justify-content:space-between;align-items:center
+}
+.btn-ai{
+background:rgba(255,255,255,.2);border:1px solid rgba(255,255,255,.4);
+color:#fff;padding:6px 12px;border-radius:20px;font-size:12px
+}
+.search-bar{
+background:#fff;padding:10px;display:flex;gap:8px;border-bottom:1px solid #e5e7eb
+}
+input{flex:1;padding:8px 12px;border-radius:8px;border:1px solid #d1d5db}
+.btn{border:none;border-radius:8px;color:#fff;padding:0 14px}
+.btn-primary{background:var(--primary)}
+.btn-secondary{background:#3b82f6}
+main{flex:1;display:flex;flex-direction:column}
+#map{height:50%}
+#result{height:50%;background:#fff;border-top:4px solid var(--primary)}
+.list{padding:10px;overflow:auto}
+.item{
+border:1px solid #e5e7eb;border-radius:8px;padding:12px;margin-bottom:10px
+}
+.modal{
+position:fixed;inset:0;background:rgba(0,0,0,.5);
+display:none;align-items:flex-end;z-index:9999
+}
+.modal.show{display:flex}
+.modal-box{
+background:#fff;width:100%;height:80vh;border-radius:16px 16px 0 0;
+display:flex;flex-direction:column
+}
+.chat-body{flex:1;padding:15px;overflow:auto;background:#f8fafc}
+.msg{padding:10px;border-radius:12px;font-size:14px;max-width:85%}
+.user{background:var(--primary);color:#fff;margin-left:auto}
+.ai{background:#fff;border:1px solid #e5e7eb}
+.chat-footer{padding:10px;display:flex;gap:8px}
+@media(min-width:768px){
+main{flex-direction:row}
+#map{width:60%;height:100%}
+#result{width:40%;height:100%}
+.modal{align-items:center}
+.modal-box{height:600px;border-radius:16px}
+}
+</style>
+</head>
+
+<body>
+
+<header>
+<div><strong><i class="fas fa-kaaba"></i> Masjid Finder</strong></div>
+<button class="btn-ai" onclick="toggleAI()">
+<i class="fas fa-robot"></i> Tanya Ustaz
+</button>
+</header>
+
+<div class="search-bar">
+<input id="search" placeholder="Cari kota / kecamatan">
+<button class="btn btn-primary" onclick="searchLocation()">
+<i class="fas fa-search"></i>
+</button>
+<button class="btn btn-secondary" onclick="getCurrentLocation()">
+<i class="fas fa-crosshairs"></i>
+</button>
+</div>
+
+<main>
+<div id="map"></div>
+<div id="result">
+<div class="list" id="list">
+<p style="text-align:center;color:#9ca3af">Gunakan peta atau lokasi Anda</p>
+</div>
+</div>
+</main>
+
+<!-- AI MODAL -->
+<div id="aiModal" class="modal">
+<div class="modal-box">
+<div style="padding:12px;background:var(--primary);color:#fff">
+<strong>Ustaz AI</strong>
+<button onclick="toggleAI()" style="float:right;background:none;border:none;color:#fff">✕</button>
+</div>
+<div id="chat" class="chat-body">
+<div class="msg ai">Assalamualaikum, ada yang bisa saya bantu?</div>
+</div>
+<div class="chat-footer">
+<input id="aiInput" placeholder="Tulis pertanyaan...">
+<button class="btn btn-primary" onclick="sendAI()">
+<i class="fas fa-paper-plane"></i>
+</button>
+</div>
+</div>
+</div>
+
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+
+<script>
+/* MAP */
+let map=L.map('map').setView([-6.175392,106.827153],13);
+L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(map);
+
+function toggleAI(){
+document.getElementById('aiModal').classList.toggle('show')
+}
+
+/* AI (SAFE – BELUM TERHUBUNG) */
+async function sendAI(){
+const i=document.getElementById('aiInput');
+const t=i.value.trim(); if(!t)return;
+const c=document.getElementById('chat');
+c.innerHTML+=`<div class="msg user">${t}</div>`;
+i.value='';
+c.innerHTML+=`<div class="msg ai">Ustaz AI belum terhubung.</div>`;
+c.scrollTop=c.scrollHeight;
+}
+</script>
+
+</body>
+</html>
