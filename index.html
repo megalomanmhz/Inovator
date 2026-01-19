@@ -47,9 +47,29 @@ font-family:Poppins;
 }
 header small{font-size:12px;opacity:.9}
 
+/* JADWAL SHOLAT BOX */
+#shalatBox{
+background:#fff;
+margin:8px;
+padding:10px;
+border-radius:12px;
+font-size:13px;
+box-shadow:0 2px 6px rgba(0,0,0,.1);
+}
+
+/* INJURY TIME */
+#injury{
+display:none;
+background:var(--warn);
+color:#111;
+padding:6px 10px;
+font-size:13px;
+text-align:center;
+}
+
 /* MAP */
 #map{
-height:calc(100vh - 56px - 64px);
+height:calc(100vh - 56px - 64px - 100px);
 }
 
 /* BOTTOM BAR */
@@ -57,7 +77,7 @@ height:calc(100vh - 56px - 64px);
 position:fixed;
 bottom:0;left:0;right:0;
 height:64px;
-background:rgba(255,255,255,.9);
+background:rgba(255,255,255,.95);
 backdrop-filter:blur(10px);
 display:flex;
 justify-content:space-around;
@@ -117,6 +137,9 @@ align-items:center;
 font-family:Poppins;
 cursor:move;
 }
+#chatHeader button{
+background:none;border:none;color:#fff;font-size:16px;margin-left:6px
+}
 #chatBody{
 flex:1;
 padding:10px;
@@ -148,15 +171,6 @@ border:1px solid #d1d5db;
 top:0!important;left:0!important;right:0!important;bottom:0!important;
 width:100%!important;height:100%!important;border-radius:0!important;
 }
-
-/* INJURY */
-#injury{
-display:none;
-background:var(--warn);
-color:#111;
-padding:6px 10px;
-font-size:13px;
-}
 </style>
 </head>
 
@@ -164,10 +178,15 @@ font-size:13px;
 
 <header>
 <div>🕌 Masjid Finder</div>
-<small id="status">● AI aktif</small>
+<small id="status">● Ustaz AI aktif</small>
 </header>
 
 <div id="injury"></div>
+
+<div id="shalatBox">
+📿 Jadwal sholat akan tampil setelah GPS aktif
+</div>
+
 <div id="map"></div>
 
 <!-- BOTTOM BAR -->
@@ -175,8 +194,7 @@ font-size:13px;
 <div class="bar-btn" onclick="locateMe()"><i class="fa-solid fa-crosshairs"></i>GPS</div>
 <div class="bar-btn" onclick="locateMe()"><i class="fa-solid fa-mosque"></i>Masjid</div>
 <div class="bar-btn" onclick="openChat()"><i class="fa-solid fa-robot"></i>Ustaz AI</div>
-<div class="bar-btn" onclick="alert('Lihat jadwal sholat di atas peta')"><i class="fa-solid fa-clock"></i>Sholat</div>
-<div class="bar-btn" onclick="alert('Menu menyusul')"><i class="fa-solid fa-gear"></i>Menu</div>
+<div class="bar-btn" onclick="locateMe()"><i class="fa-solid fa-clock"></i>Sholat</div>
 </div>
 
 <!-- CHAT -->
@@ -186,9 +204,10 @@ font-size:13px;
 <div id="chatHeader">
 <span>Ustaz AI</span>
 <div>
-<i class="fa-solid fa-minus" onclick="minimizeChat()"></i>
-<i class="fa-solid fa-expand" onclick="maximizeChat()"></i>
-<i class="fa-solid fa-xmark" onclick="closeChat()"></i>
+<button onclick="toggleVoice()" id="voiceBtn">🔊</button>
+<button onclick="minimizeChat()">➖</button>
+<button onclick="maximizeChat()">⬜</button>
+<button onclick="closeChat()">✖</button>
 </div>
 </div>
 
@@ -209,6 +228,17 @@ let userMarker=null;
 let masjidMarkers=[];
 let userLat=null,userLng=null;
 
+/* VOICE */
+let voiceOn = localStorage.getItem("voiceAI") !== "off";
+document.getElementById("voiceBtn").innerText = voiceOn ? "🔊" : "🔇";
+
+function toggleVoice(){
+voiceOn=!voiceOn;
+localStorage.setItem("voiceAI",voiceOn?"on":"off");
+document.getElementById("voiceBtn").innerText = voiceOn ? "🔊" : "🔇";
+}
+
+/* GPS */
 function locateMe(){
 navigator.geolocation.getCurrentPosition(p=>{
 userLat=p.coords.latitude;
@@ -247,11 +277,16 @@ masjidMarkers.push(L.marker([la,lo]).addTo(map).bindPopup(name));
 });
 }
 
-/* SHOLAT + INJURY */
+/* SHOLAT */
 function loadSholat(lat,lng){
 fetch(`/api/jadwal-shalat?lat=${lat}&lng=${lng}`)
 .then(r=>r.json())
 .then(t=>{
+document.getElementById("shalatBox").innerHTML=`
+<b>🕌 Jadwal Sholat Hari Ini</b><br>
+Subuh ${t.Fajr} | Dzuhur ${t.Dhuhr} | Ashar ${t.Asr}<br>
+Maghrib ${t.Maghrib} | Isya ${t.Isha}
+`;
 checkInjury("Maghrib",t.Maghrib);
 });
 }
@@ -273,7 +308,6 @@ minimizeChat();
 
 /* CHAT */
 let idle=null;
-
 function openChat(){
 document.getElementById("chatBubble").style.display="none";
 document.getElementById("chatWindow").style.display="flex";
@@ -319,6 +353,13 @@ const d=await r.json();
 load.remove();
 body.innerHTML+=`<div class="msg ai">${marked.parse(d.reply)}</div>`;
 body.scrollTop=body.scrollHeight;
+
+if(voiceOn && "speechSynthesis"in window){
+const u=new SpeechSynthesisUtterance(d.reply);
+u.lang="id-ID";
+speechSynthesis.cancel();
+speechSynthesis.speak(u);
+}
 q.value="";
 }
 
@@ -338,4 +379,5 @@ document.onmouseup=()=>drag=false;
 </script>
 
 </body>
-</html>
+  </html>
+  
