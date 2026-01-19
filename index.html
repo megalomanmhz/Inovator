@@ -7,7 +7,12 @@
 
 <!-- Leaflet -->
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
-
+<script>
+document.addEventListener("DOMContentLoaded", function () {
+  initMap();
+});
+</script>
+  
 <!-- FontAwesome -->
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 
@@ -126,10 +131,13 @@ main{flex-direction:row}
 
 <script>
 /* MAP */
-let map=L.map('map').setView([-6.175392,106.827153],13);
-L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(map);
-
-function toggleAI(){
+  function initMap() {
+  const map = L.map("map").setView([-6.1754, 106.8272], 13);
+  L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
+    attribution: ""
+  }).addTo(map);
+  }
+  function toggleAI(){
 document.getElementById('aiModal').classList.toggle('show')
 }
 
