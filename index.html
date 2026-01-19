@@ -2,17 +2,13 @@
 <html lang="id">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-<title>Masjid Finder Lite</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>Masjid Finder + Ustaz AI</title>
 
 <!-- Leaflet -->
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
-<script>
-document.addEventListener("DOMContentLoaded", function () {
-  initMap();
-});
-</script>
-  
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+
 <!-- FontAwesome -->
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 
@@ -21,31 +17,30 @@ document.addEventListener("DOMContentLoaded", function () {
 
 <style>
 :root{
---primary:#059669;
---bg:#f0fdf4;
---white:#fff;
---text:#1f2937;
---safe-top:env(safe-area-inset-top,0px);
---safe-bottom:env(safe-area-inset-bottom,0px)
+  --primary:#059669;
+  --bg:#f0fdf4;
+  --white:#fff;
+  --text:#1f2937;
 }
 *{box-sizing:border-box}
 body{
-margin:0;font-family:system-ui;background:var(--bg);
-height:100vh;display:flex;flex-direction:column;overflow:hidden;color:var(--text)
+  margin:0;font-family:system-ui;background:var(--bg);
+  height:100vh;display:flex;flex-direction:column;overflow:hidden;color:var(--text)
 }
 header{
-background:var(--primary);color:#fff;
-padding:calc(10px + var(--safe-top)) 15px 10px;
-display:flex;justify-content:space-between;align-items:center
+  background:var(--primary);color:#fff;padding:12px 15px;
+  display:flex;justify-content:space-between;align-items:center
 }
 .btn-ai{
-background:rgba(255,255,255,.2);border:1px solid rgba(255,255,255,.4);
-color:#fff;padding:6px 12px;border-radius:20px;font-size:12px
+  background:rgba(255,255,255,.2);border:1px solid rgba(255,255,255,.4);
+  color:#fff;padding:6px 12px;border-radius:20px;font-size:12px
 }
 .search-bar{
-background:#fff;padding:10px;display:flex;gap:8px;border-bottom:1px solid #e5e7eb
+  background:#fff;padding:10px;display:flex;gap:8px;border-bottom:1px solid #e5e7eb
 }
-input{flex:1;padding:8px 12px;border-radius:8px;border:1px solid #d1d5db}
+input{
+  flex:1;padding:8px 12px;border-radius:8px;border:1px solid #d1d5db
+}
 .btn{border:none;border-radius:8px;color:#fff;padding:0 14px}
 .btn-primary{background:var(--primary)}
 .btn-secondary{background:#3b82f6}
@@ -54,28 +49,35 @@ main{flex:1;display:flex;flex-direction:column}
 #result{height:50%;background:#fff;border-top:4px solid var(--primary)}
 .list{padding:10px;overflow:auto}
 .item{
-border:1px solid #e5e7eb;border-radius:8px;padding:12px;margin-bottom:10px
+  border:1px solid #e5e7eb;border-radius:8px;
+  padding:12px;margin-bottom:10px
 }
 .modal{
-position:fixed;inset:0;background:rgba(0,0,0,.5);
-display:none;align-items:flex-end;z-index:9999
+  position:fixed;inset:0;background:rgba(0,0,0,.5);
+  display:none;align-items:flex-end;z-index:9999
 }
 .modal.show{display:flex}
 .modal-box{
-background:#fff;width:100%;height:80vh;border-radius:16px 16px 0 0;
-display:flex;flex-direction:column
+  background:#fff;width:100%;height:80vh;
+  border-radius:16px 16px 0 0;
+  display:flex;flex-direction:column
 }
-.chat-body{flex:1;padding:15px;overflow:auto;background:#f8fafc}
-.msg{padding:10px;border-radius:12px;font-size:14px;max-width:85%}
+.chat-body{
+  flex:1;padding:15px;overflow:auto;background:#f8fafc
+}
+.msg{
+  padding:10px;border-radius:12px;font-size:14px;
+  max-width:85%;margin-bottom:8px
+}
 .user{background:var(--primary);color:#fff;margin-left:auto}
 .ai{background:#fff;border:1px solid #e5e7eb}
 .chat-footer{padding:10px;display:flex;gap:8px}
 @media(min-width:768px){
-main{flex-direction:row}
-#map{width:60%;height:100%}
-#result{width:40%;height:100%}
-.modal{align-items:center}
-.modal-box{height:600px;border-radius:16px}
+  main{flex-direction:row}
+  #map{width:60%;height:100%}
+  #result{width:40%;height:100%}
+  .modal{align-items:center}
+  .modal-box{height:600px;border-radius:16px}
 }
 </style>
 </head>
@@ -83,105 +85,177 @@ main{flex-direction:row}
 <body>
 
 <header>
-<div><strong><i class="fas fa-kaaba"></i> Masjid Finder</strong></div>
-<button class="btn-ai" onclick="toggleAI()">
-<i class="fas fa-robot"></i> Tanya Ustaz
-</button>
+  <strong><i class="fas fa-kaaba"></i> Masjid Finder</strong>
+  <button class="btn-ai" onclick="toggleAI()">
+    <i class="fas fa-robot"></i> Tanya Ustaz
+  </button>
 </header>
 
 <div class="search-bar">
-<input id="search" placeholder="Cari kota / kecamatan">
-<button class="btn btn-primary" onclick="searchLocation()">
-<i class="fas fa-search"></i>
-</button>
-<button class="btn btn-secondary" onclick="getCurrentLocation()">
-<i class="fas fa-crosshairs"></i>
-</button>
+  <input id="search" placeholder="Cari kota / kecamatan">
+  <button class="btn btn-primary" onclick="searchLocation()">
+    <i class="fas fa-search"></i>
+  </button>
+  <button class="btn btn-secondary" onclick="getCurrentLocation()">
+    <i class="fas fa-crosshairs"></i>
+  </button>
 </div>
 
 <main>
-<div id="map"></div>
-<div id="result">
-<div class="list" id="list">
-<p style="text-align:center;color:#9ca3af">Gunakan peta atau lokasi Anda</p>
-</div>
-</div>
+  <div id="map"></div>
+  <div id="result">
+    <div id="list" class="list">
+      <p style="text-align:center;color:#9ca3af">
+        Gunakan peta atau lokasi Anda
+      </p>
+    </div>
+  </div>
 </main>
 
 <!-- AI MODAL -->
 <div id="aiModal" class="modal">
-<div class="modal-box">
-<div style="padding:12px;background:var(--primary);color:#fff">
-<strong>Ustaz AI</strong>
-<button onclick="toggleAI()" style="float:right;background:none;border:none;color:#fff">✕</button>
+  <div class="modal-box">
+    <div style="padding:12px;background:var(--primary);color:#fff">
+      <strong>Ustaz AI</strong>
+      <button onclick="toggleAI()" style="float:right;background:none;border:none;color:#fff">✕</button>
+    </div>
+    <div id="chat" class="chat-body"></div>
+    <div class="chat-footer">
+      <input id="aiInput" placeholder="Tulis atau tekan mic...">
+      <button class="btn btn-secondary" onclick="startVoice()">
+        <i class="fas fa-microphone"></i>
+      </button>
+      <button class="btn btn-primary" onclick="sendAI()">
+        <i class="fas fa-paper-plane"></i>
+      </button>
+    </div>
+  </div>
 </div>
-<div id="chat" class="chat-body">
-<div class="msg ai">Assalamualaikum, ada yang bisa saya bantu?</div>
-</div>
-<div class="chat-footer">
-<input id="aiInput" placeholder="Tulis pertanyaan...">
-<button class="btn btn-primary" onclick="sendAI()">
-<i class="fas fa-paper-plane"></i>
-</button>
-</div>
-</div>
-</div>
-
-<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 
 <script>
-/* MAP */
-  function initMap() {
-  const map = L.map("map").setView([-6.1754, 106.8272], 13);
-  L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
-    attribution: ""
-  }).addTo(map);
-  }
-  function toggleAI(){
-document.getElementById('aiModal').classList.toggle('show')
+/* =====================
+   MAP & MASJID
+   ===================== */
+let map, userMarker, mosqueMarkers=[];
+function initMap(){
+  map = L.map("map").setView([-6.1754,106.8272],13);
+  L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",{maxZoom:19}).addTo(map);
+}
+document.addEventListener("DOMContentLoaded", initMap);
+
+function getCurrentLocation(){
+  navigator.geolocation.getCurrentPosition(p=>{
+    const {latitude,longitude}=p.coords;
+    setLocation(latitude,longitude,"Lokasi Anda");
+  },()=>alert("GPS tidak aktif"));
 }
 
-/* AI (SAFE – BELUM TERHUBUNG) */
-<script>
-async function sendAI() {
-  const input = document.getElementById("aiInput");
-  const text = input.value.trim();
-  if (!text) return;
+function searchLocation(){
+  const q=document.getElementById("search").value;
+  if(!q) return;
+  fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(q)}`)
+    .then(r=>r.json())
+    .then(d=>{
+      if(d[0]) setLocation(d[0].lat,d[0].lon,d[0].display_name);
+    });
+}
 
-  const chat = document.getElementById("chat");
+function setLocation(lat,lng,label){
+  if(userMarker) map.removeLayer(userMarker);
+  userMarker=L.marker([lat,lng]).addTo(map).bindPopup(label).openPopup();
+  map.setView([lat,lng],15);
+  loadMosques(lat,lng);
+}
 
-  // tampilkan pesan user
-  chat.innerHTML += `<div class="msg user">${text}</div>`;
-  input.value = "";
+function loadMosques(lat,lng){
+  mosqueMarkers.forEach(m=>map.removeLayer(m));
+  mosqueMarkers=[];
+  document.getElementById("list").innerHTML="";
 
-  // loader AI
-  const loaderId = "ai" + Date.now();
-  chat.innerHTML += `<div id="${loaderId}" class="msg ai">Ustaz AI sedang menjawab...</div>`;
-  chat.scrollTop = chat.scrollHeight;
+  const q=`[out:json];
+  node["amenity"="place_of_worship"]["religion"="muslim"](around:1000,${lat},${lng});
+  out;`;
 
-  try {
-    const res = await fetch(
-      "https://inovator.vercel.app/api/ai-chat",
-      {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ message: text })
-      }
-    );
+  fetch("https://overpass-api.de/api/interpreter",{method:"POST",body:q})
+    .then(r=>r.json())
+    .then(d=>{
+      d.elements.forEach(m=>{
+        const mk=L.marker([m.lat,m.lon]).addTo(map).bindPopup(m.tags.name||"Masjid");
+        mosqueMarkers.push(mk);
+        document.getElementById("list").innerHTML+=`
+          <div class="item">
+            <strong>${m.tags.name||"Masjid"}</strong><br>
+            <a target="_blank"
+              href="https://www.google.com/maps/dir/?api=1&destination=${m.lat},${m.lon}">
+              Rute
+            </a>
+          </div>`;
+      });
+    });
+}
 
-    const data = await res.json();
-    document.getElementById(loaderId).remove();
+/* =====================
+   AI + VOICE
+   ===================== */
+function toggleAI(){
+  document.getElementById("aiModal").classList.toggle("show");
+}
 
-    chat.innerHTML += `<div class="msg ai">${data.reply}</div>`;
-  } catch (e) {
-    document.getElementById(loaderId).innerText =
-      "❌ Gagal menghubungi Ustaz AI.";
+function speak(t){
+  if(!("speechSynthesis" in window)) return;
+  speechSynthesis.cancel();
+  const u=new SpeechSynthesisUtterance(t);
+  u.lang="id-ID";
+  speechSynthesis.speak(u);
+}
+
+let recognition;
+if("webkitSpeechRecognition" in window){
+  recognition=new webkitSpeechRecognition();
+  recognition.lang="id-ID";
+  recognition.onresult=e=>{
+    document.getElementById("aiInput").value=e.results[0][0].transcript;
+    sendAI();
+  };
+}
+function startVoice(){
+  if(recognition) recognition.start();
+  else alert("Voice tidak didukung");
+}
+
+function escapeHtml(t){
+  return t.replace(/[&<>]/g,m=>({"&":"&amp;","<":"&lt;",">":"&gt;"}[m]));
+}
+
+async function sendAI(){
+  const input=document.getElementById("aiInput");
+  const text=input.value.trim();
+  if(!text) return;
+
+  const chat=document.getElementById("chat");
+  chat.innerHTML+=`<div class="msg user">${escapeHtml(text)}</div>`;
+  input.value="";
+
+  const id="ai"+Date.now();
+  chat.innerHTML+=`<div id="${id}" class="msg ai">Ustaz AI menjawab...</div>`;
+  chat.scrollTop=chat.scrollHeight;
+
+  try{
+    const r=await fetch("https://inovator.vercel.app/api/ai-chat",{
+      method:"POST",
+      headers:{ "Content-Type":"application/json" },
+      body:JSON.stringify({message:text})
+    });
+    const d=await r.json();
+    document.getElementById(id).remove();
+    chat.innerHTML+=`<div class="msg ai">${marked.parse(d.reply)}</div>`;
+    speak(d.reply);
+  }catch{
+    document.getElementById(id).innerText="❌ AI tidak merespon";
   }
-
-  chat.scrollTop = chat.scrollHeight;
+  chat.scrollTop=chat.scrollHeight;
 }
 </script>
-
 
 </body>
 </html>
