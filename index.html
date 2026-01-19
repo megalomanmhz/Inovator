@@ -134,16 +134,46 @@ document.getElementById('aiModal').classList.toggle('show')
 }
 
 /* AI (SAFE – BELUM TERHUBUNG) */
-async function sendAI(){
-const i=document.getElementById('aiInput');
-const t=i.value.trim(); if(!t)return;
-const c=document.getElementById('chat');
-c.innerHTML+=`<div class="msg user">${t}</div>`;
-i.value='';
-c.innerHTML+=`<div class="msg ai">Ustaz AI belum terhubung.</div>`;
-c.scrollTop=c.scrollHeight;
+<script>
+async function sendAI() {
+  const input = document.getElementById("aiInput");
+  const text = input.value.trim();
+  if (!text) return;
+
+  const chat = document.getElementById("chat");
+
+  // tampilkan pesan user
+  chat.innerHTML += `<div class="msg user">${text}</div>`;
+  input.value = "";
+
+  // loader AI
+  const loaderId = "ai" + Date.now();
+  chat.innerHTML += `<div id="${loaderId}" class="msg ai">Ustaz AI sedang menjawab...</div>`;
+  chat.scrollTop = chat.scrollHeight;
+
+  try {
+    const res = await fetch(
+      "https://inovator.vercel.app/api/ai-chat",
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ message: text })
+      }
+    );
+
+    const data = await res.json();
+    document.getElementById(loaderId).remove();
+
+    chat.innerHTML += `<div class="msg ai">${data.reply}</div>`;
+  } catch (e) {
+    document.getElementById(loaderId).innerText =
+      "❌ Gagal menghubungi Ustaz AI.";
+  }
+
+  chat.scrollTop = chat.scrollHeight;
 }
 </script>
+
 
 </body>
 </html>
