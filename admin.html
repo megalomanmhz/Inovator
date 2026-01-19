@@ -3,60 +3,123 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Admin Dashboard – Masjid AI</title>
+<title>Masjid Finder & Ustaz AI</title>
+
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+
 <style>
-body{font-family:system-ui;background:#f3f4f6;margin:0;padding:20px}
-.card{background:#fff;border-radius:10px;padding:15px;margin-bottom:15px}
-button{background:#059669;color:#fff;border:none;padding:8px 14px;border-radius:6px}
-input{padding:8px;width:100%;margin:8px 0}
-pre{background:#111827;color:#e5e7eb;padding:10px;border-radius:8px;overflow:auto}
-.hidden{display:none}
+:root{--green:#059669}
+body{margin:0;font-family:system-ui;background:#f0fdf4}
+header{background:var(--green);color:#fff;padding:14px;display:flex;justify-content:space-between}
+button{background:var(--green);color:#fff;border:none;padding:8px 12px;border-radius:6px}
+#map{height:45vh}
+.section{padding:12px}
+.card{background:#fff;border-radius:10px;padding:12px;margin-bottom:10px}
+.msg{padding:8px;margin:6px 0;border-radius:8px}
+.user{background:var(--green);color:#fff;text-align:right}
+.ai{background:#fff;border:1px solid #ddd}
+.modal{position:fixed;inset:0;background:rgba(0,0,0,.5);display:none;align-items:flex-end}
+.modal.show{display:flex}
+.box{background:#fff;width:100%;height:75vh;border-radius:16px 16px 0 0;display:flex;flex-direction:column}
+.chat{flex:1;overflow:auto;padding:10px}
+.footer{display:flex;padding:10px;gap:6px}
+input{flex:1;padding:8px}
 </style>
 </head>
 
 <body>
 
-<h2>🕌 Admin Dashboard</h2>
+<header>
+<strong>🕌 Masjid Finder</strong>
+<button onclick="openAI()">Tanya Ustaz</button>
+</header>
 
-<div id="login" class="card">
-  <h4>Login Takmir</h4>
-  <input id="pass" type="password" placeholder="Password Admin">
-  <button onclick="login()">Login</button>
+<div id="map"></div>
+
+<div class="section">
+  <div class="card" id="jadwal">📿 Memuat jadwal shalat...</div>
+  <div class="card" id="masjid">📍 Masjid terdekat akan tampil di sini</div>
 </div>
 
-<div id="panel" class="hidden">
-  <div class="card">
-    <h4>📊 Statistik</h4>
-    <pre id="stats">Memuat...</pre>
+<!-- AI MODAL -->
+<div id="ai" class="modal">
+<div class="box">
+  <div style="background:#059669;color:#fff;padding:10px">
+    Ustaz AI
+    <button style="float:right" onclick="closeAI()">✕</button>
   </div>
-
-  <div class="card">
-    <h4>🗂️ Log Percakapan</h4>
-    <pre id="logs">Memuat...</pre>
+  <div id="chat" class="chat"></div>
+  <div class="footer">
+    <input id="q" placeholder="Tanya fiqih / doa...">
+    <button onclick="voice()">🎤</button>
+    <button onclick="ask()">➤</button>
   </div>
+</div>
 </div>
 
 <script>
-let ADMIN_KEY="";
+/* MAP */
+let map=L.map("map").setView([-6.2,106.8],13);
+L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png").addTo(map);
 
-async function login(){
-  ADMIN_KEY=document.getElementById("pass").value;
-  const r=await fetch("/api/admin-stats",{headers:{"x-admin-key":ADMIN_KEY}});
-  if(r.status!==200){alert("Password salah");return;}
-  document.getElementById("login").classList.add("hidden");
-  document.getElementById("panel").classList.remove("hidden");
-  load();
+navigator.geolocation.getCurrentPosition(p=>{
+ const {latitude,longitude}=p.coords;
+ map.setView([latitude,longitude],15);
+ L.marker([latitude,longitude]).addTo(map);
+ loadJadwal(latitude,longitude);
+});
+
+/* JADWAL */
+function loadJadwal(lat,lng){
+ fetch(`/api/jadwal-shalat?lat=${lat}&lng=${lng}`)
+ .then(r=>r.json())
+ .then(t=>{
+  document.getElementById("jadwal").innerHTML=
+   `<b>Jadwal Shalat</b><br>
+   Subuh ${t.Fajr} | Dzuhur ${t.Dhuhr} | Ashar ${t.Asr}<br>
+   Maghrib ${t.Maghrib} | Isya ${t.Isha}`;
+ });
 }
 
-async function load(){
-  const s=await fetch("/api/admin-stats",{headers:{"x-admin-key":ADMIN_KEY}});
-  document.getElementById("stats").innerText=JSON.stringify(await s.json(),null,2);
+/* AI */
+function openAI(){document.getElementById("ai").classList.add("show")}
+function closeAI(){document.getElementById("ai").classList.remove("show")}
 
-  const l=await fetch("/api/admin-logs",{headers:{"x-admin-key":ADMIN_KEY}});
-  document.getElementById("logs").innerText=JSON.stringify(await l.json(),null,2);
+async function ask(){
+ const q=document.getElementById("q").value;
+ if(!q) return;
+ const c=document.getElementById("chat");
+ c.innerHTML+=`<div class="msg user">${q}</div>`;
+ document.getElementById("q").value="";
+ const r=await fetch("/api/ai-chat",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({message:q})});
+ const d=await r.json();
+ c.innerHTML+=`<div class="msg ai">${marked.parse(d.reply)}</div>`;
+ speak(d.reply);
+ c.scrollTop=c.scrollHeight;
 }
+
+/* VOICE */
+function speak(t){
+ if(!("speechSynthesis"in window))return;
+ speechSynthesis.cancel();
+ const u=new SpeechSynthesisUtterance(t);
+ u.lang="id-ID";
+ speechSynthesis.speak(u);
+}
+
+let rec;
+if("webkitSpeechRecognition"in window){
+ rec=new webkitSpeechRecognition();
+ rec.lang="id-ID";
+ rec.onresult=e=>{
+  document.getElementById("q").value=e.results[0][0].transcript;
+  ask();
+ };
+}
+function voice(){if(rec)rec.start();}
 </script>
 
 </body>
-  </html>
-  
+</html>
