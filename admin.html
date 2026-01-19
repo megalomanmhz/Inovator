@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Admin Dashboard – Masjid AI</title>
+<style>
+body{font-family:system-ui;background:#f3f4f6;margin:0;padding:20px}
+.card{background:#fff;border-radius:10px;padding:15px;margin-bottom:15px}
+button{background:#059669;color:#fff;border:none;padding:8px 14px;border-radius:6px}
+input{padding:8px;width:100%;margin:8px 0}
+pre{background:#111827;color:#e5e7eb;padding:10px;border-radius:8px;overflow:auto}
+.hidden{display:none}
+</style>
+</head>
+
+<body>
+
+<h2>🕌 Admin Dashboard</h2>
+
+<div id="login" class="card">
+  <h4>Login Takmir</h4>
+  <input id="pass" type="password" placeholder="Password Admin">
+  <button onclick="login()">Login</button>
+</div>
+
+<div id="panel" class="hidden">
+  <div class="card">
+    <h4>📊 Statistik</h4>
+    <pre id="stats">Memuat...</pre>
+  </div>
+
+  <div class="card">
+    <h4>🗂️ Log Percakapan</h4>
+    <pre id="logs">Memuat...</pre>
+  </div>
+</div>
+
+<script>
+let ADMIN_KEY="";
+
+async function login(){
+  ADMIN_KEY=document.getElementById("pass").value;
+  const r=await fetch("/api/admin-stats",{headers:{"x-admin-key":ADMIN_KEY}});
+  if(r.status!==200){alert("Password salah");return;}
+  document.getElementById("login").classList.add("hidden");
+  document.getElementById("panel").classList.remove("hidden");
+  load();
+}
+
+async function load(){
+  const s=await fetch("/api/admin-stats",{headers:{"x-admin-key":ADMIN_KEY}});
+  document.getElementById("stats").innerText=JSON.stringify(await s.json(),null,2);
+
+  const l=await fetch("/api/admin-logs",{headers:{"x-admin-key":ADMIN_KEY}});
+  document.getElementById("logs").innerText=JSON.stringify(await l.json(),null,2);
+}
+</script>
+
+</body>
+  </html>
+  
