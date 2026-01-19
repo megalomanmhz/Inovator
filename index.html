@@ -1,124 +1,310 @@
 <!DOCTYPE html>
 <html lang="id">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
 <title>Masjid Finder & Ustaz AI</title>
 
-<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+<!-- Font -->
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600&family=Inter:wght@400;500&display=swap" rel="stylesheet">
+
+<!-- Icon -->
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css"/>
+
+<!-- Leaflet -->
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+
+<!-- Markdown -->
 <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
 
 <style>
-:root{--green:#059669}
-body{margin:0;font-family:system-ui;background:#f0fdf4}
-header{background:var(--green);color:#fff;padding:14px;display:flex;justify-content:space-between}
-button{background:var(--green);color:#fff;border:none;padding:8px 12px;border-radius:6px}
+:root{
+--primary:#059669;
+--secondary:#2563eb;
+--bg:#f0fdf4;
+--warn:#f59e0b;
+--danger:#ef4444;
+}
+*{box-sizing:border-box}
+body{
+margin:0;
+font-family:Inter,system-ui;
+background:var(--bg);
+color:#1f2937;
+overflow:hidden;
+}
+header{
+background:var(--primary);
+color:#fff;
+padding:14px;
+display:flex;
+justify-content:space-between;
+align-items:center;
+font-family:Poppins;
+}
+header button{
+background:#fff;
+color:var(--primary);
+border:none;
+padding:6px 12px;
+border-radius:999px;
+font-weight:600;
+}
 #map{height:45vh}
-.section{padding:12px}
-.card{background:#fff;border-radius:10px;padding:12px;margin-bottom:10px}
-.msg{padding:8px;margin:6px 0;border-radius:8px}
-.user{background:var(--green);color:#fff;text-align:right}
-.ai{background:#fff;border:1px solid #ddd}
-.modal{position:fixed;inset:0;background:rgba(0,0,0,.5);display:none;align-items:flex-end}
-.modal.show{display:flex}
-.box{background:#fff;width:100%;height:75vh;border-radius:16px 16px 0 0;display:flex;flex-direction:column}
-.chat{flex:1;overflow:auto;padding:10px}
-.footer{display:flex;padding:10px;gap:6px}
-input{flex:1;padding:8px}
+
+/* FAB */
+.fab{
+position:fixed;
+right:14px;
+bottom:90px;
+background:var(--secondary);
+color:#fff;
+border-radius:50%;
+width:48px;
+height:48px;
+display:flex;
+align-items:center;
+justify-content:center;
+font-size:20px;
+z-index:999;
+}
+
+/* Running text */
+#ticker{
+background:var(--warn);
+color:#111;
+padding:6px;
+font-size:13px;
+white-space:nowrap;
+overflow:hidden;
+}
+#ticker span{
+display:inline-block;
+padding-left:100%;
+animation:marquee 15s linear infinite;
+}
+@keyframes marquee{
+from{transform:translateX(0)}
+to{transform:translateX(-100%)}
+}
+
+/* Floating Chat */
+#chatBox{
+position:fixed;
+right:16px;
+bottom:16px;
+width:300px;
+height:380px;
+background:#fff;
+border-radius:16px;
+box-shadow:0 10px 30px rgba(0,0,0,.15);
+display:none;
+flex-direction:column;
+z-index:1000;
+}
+#chatHeader{
+background:var(--primary);
+color:#fff;
+padding:10px;
+font-weight:600;
+cursor:move;
+display:flex;
+justify-content:space-between;
+align-items:center;
+}
+#chatStatus{
+font-size:11px;
+opacity:.9;
+}
+#chatBody{
+flex:1;
+overflow:auto;
+padding:10px;
+background:#f8fafc;
+}
+.msg{
+padding:8px;
+margin-bottom:6px;
+border-radius:10px;
+font-size:14px;
+}
+.user{background:var(--primary);color:#fff;margin-left:auto}
+.ai{background:#fff;border:1px solid #e5e7eb}
+#chatFooter{
+display:flex;
+gap:6px;
+padding:8px;
+border-top:1px solid #e5e7eb;
+}
+#chatFooter input{
+flex:1;
+padding:8px;
+border-radius:8px;
+border:1px solid #d1d5db;
+}
+
+/* Toggle */
+.toggle{
+font-size:12px;
+display:flex;
+align-items:center;
+gap:6px;
+}
 </style>
 </head>
 
 <body>
 
 <header>
-<strong>🕌 Masjid Finder</strong>
-<button onclick="openAI()">Tanya Ustaz</button>
+<div>🕌 Masjid Finder</div>
+<button onclick="toggleChat()">Tanya Ustaz</button>
 </header>
+
+<div id="ticker" style="display:none">
+<span id="tickerText"></span>
+</div>
 
 <div id="map"></div>
 
-<div class="section">
-  <div class="card" id="jadwal">📿 Memuat jadwal shalat...</div>
-  <div class="card" id="masjid">📍 Masjid terdekat akan tampil di sini</div>
+<!-- FAB GPS -->
+<div class="fab" onclick="locateMe()">
+<i class="fas fa-crosshairs"></i>
 </div>
 
-<!-- AI MODAL -->
-<div id="ai" class="modal">
-<div class="box">
-  <div style="background:#059669;color:#fff;padding:10px">
-    Ustaz AI
-    <button style="float:right" onclick="closeAI()">✕</button>
-  </div>
-  <div id="chat" class="chat"></div>
-  <div class="footer">
-    <input id="q" placeholder="Tanya fiqih / doa...">
-    <button onclick="voice()">🎤</button>
-    <button onclick="ask()">➤</button>
-  </div>
+<!-- CHAT FLOATING -->
+<div id="chatBox">
+<div id="chatHeader">
+<span>Ustaz AI</span>
+<span id="chatStatus">● aktif</span>
+<button onclick="closeChat()">✕</button>
+</div>
+
+<div id="chatBody"></div>
+
+<div id="chatFooter">
+<input id="q" placeholder="Tanya fiqih / doa...">
+<button onclick="ask()">➤</button>
+</div>
+
+<div class="toggle" style="padding:6px">
+<input type="checkbox" id="voiceToggle">
+<label for="voiceToggle">Suara AI</label>
 </div>
 </div>
+
+<audio id="alarm">
+<source src="https://actions.google.com/sounds/v1/alarms/beep_short.ogg">
+</audio>
 
 <script>
-/* MAP */
+/* ================= MAP ================= */
 let map=L.map("map").setView([-6.2,106.8],13);
 L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png").addTo(map);
 
+function locateMe(){
 navigator.geolocation.getCurrentPosition(p=>{
- const {latitude,longitude}=p.coords;
- map.setView([latitude,longitude],15);
- L.marker([latitude,longitude]).addTo(map);
- loadJadwal(latitude,longitude);
+map.setView([p.coords.latitude,p.coords.longitude],15);
+L.marker([p.coords.latitude,p.coords.longitude]).addTo(map);
+loadSholat(p.coords.latitude,p.coords.longitude);
 });
-
-/* JADWAL */
-function loadJadwal(lat,lng){
- fetch(`/api/jadwal-shalat?lat=${lat}&lng=${lng}`)
- .then(r=>r.json())
- .then(t=>{
-  document.getElementById("jadwal").innerHTML=
-   `<b>Jadwal Shalat</b><br>
-   Subuh ${t.Fajr} | Dzuhur ${t.Dhuhr} | Ashar ${t.Asr}<br>
-   Maghrib ${t.Maghrib} | Isya ${t.Isha}`;
- });
 }
 
-/* AI */
-function openAI(){document.getElementById("ai").classList.add("show")}
-function closeAI(){document.getElementById("ai").classList.remove("show")}
+/* ================= SHOLAT TIME ================= */
+function loadSholat(lat,lng){
+fetch(`/api/jadwal-shalat?lat=${lat}&lng=${lng}`)
+.then(r=>r.json())
+.then(t=>{
+const now=new Date();
+const target=new Date();
+target.setHours(...t.Maghrib.split(":"));
+const diff=(target-now)/60000;
+
+if(diff<=15 && diff>0){
+document.getElementById("ticker").style.display="block";
+document.getElementById("tickerText").innerText=
+`⏰ ${Math.round(diff)} menit lagi menuju Maghrib`;
+document.getElementById("alarm").play();
+}
+});
+}
+
+/* ================= CHAT ================= */
+let chatTimer=null;
+
+function toggleChat(){
+const box=document.getElementById("chatBox");
+box.style.display="flex";
+resetAutoHide();
+}
+
+function closeChat(){
+if(confirm("Tutup Ustaz AI?")){
+document.getElementById("chatBox").style.display="none";
+}
+}
+
+function resetAutoHide(){
+clearTimeout(chatTimer);
+chatTimer=setTimeout(()=>{
+document.getElementById("chatBox").style.display="none";
+},15000);
+}
 
 async function ask(){
- const q=document.getElementById("q").value;
- if(!q) return;
- const c=document.getElementById("chat");
- c.innerHTML+=`<div class="msg user">${q}</div>`;
- document.getElementById("q").value="";
- const r=await fetch("/api/ai-chat",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({message:q})});
- const d=await r.json();
- c.innerHTML+=`<div class="msg ai">${marked.parse(d.reply)}</div>`;
- speak(d.reply);
- c.scrollTop=c.scrollHeight;
+const q=document.getElementById("q");
+if(!q.value)return;
+const body=document.getElementById("chatBody");
+
+body.innerHTML+=`<div class="msg user">${q.value}</div>`;
+resetAutoHide();
+
+const loading=document.createElement("div");
+loading.className="msg ai";
+loading.innerText="Ustaz AI sedang menjawab...";
+body.appendChild(loading);
+
+const r=await fetch("/api/ai-chat",{
+method:"POST",
+headers:{"Content-Type":"application/json"},
+body:JSON.stringify({message:q.value})
+});
+const d=await r.json();
+
+loading.remove();
+body.innerHTML+=`<div class="msg ai">${marked.parse(d.reply)}</div>`;
+
+if(document.getElementById("voiceToggle").checked){
+speak(d.reply);
 }
 
-/* VOICE */
+body.scrollTop=body.scrollHeight;
+q.value="";
+}
+
 function speak(t){
- if(!("speechSynthesis"in window))return;
- speechSynthesis.cancel();
- const u=new SpeechSynthesisUtterance(t);
- u.lang="id-ID";
- speechSynthesis.speak(u);
+if(!("speechSynthesis"in window))return;
+speechSynthesis.cancel();
+const u=new SpeechSynthesisUtterance(t);
+u.lang="id-ID";
+speechSynthesis.speak(u);
 }
 
-let rec;
-if("webkitSpeechRecognition"in window){
- rec=new webkitSpeechRecognition();
- rec.lang="id-ID";
- rec.onresult=e=>{
-  document.getElementById("q").value=e.results[0][0].transcript;
-  ask();
- };
-}
-function voice(){if(rec)rec.start();}
+/* ================= DRAG CHAT ================= */
+let drag=false,dx=0,dy=0;
+const box=document.getElementById("chatBox");
+document.getElementById("chatHeader").onmousedown=e=>{
+drag=true;dx=e.offsetX;dy=e.offsetY;
+};
+document.onmousemove=e=>{
+if(!drag)return;
+box.style.left=(e.pageX-dx)+"px";
+box.style.top=(e.pageY-dy)+"px";
+box.style.right="auto";
+box.style.bottom="auto";
+};
+document.onmouseup=()=>drag=false;
 </script>
 
 </body>
